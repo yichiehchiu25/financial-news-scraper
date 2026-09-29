@@ -1,0 +1,16 @@
+[
+  {"name": "Reuters",      "rss_url": "https://feeds.reuters.com/reuters/businessNews",                          "tier": 1, "full_text": true,  "source_type": "rss"},
+  {"name": "Fed Press",    "rss_url": "https://www.federalreserve.gov/feeds/press_all.xml",                      "tier": 1, "full_text": true,  "source_type": "rss"},
+  {"name": "ECB Press",    "rss_url": "https://www.ecb.europa.eu/rss/press.html",                                "tier": 1, "full_text": true,  "source_type": "rss"},
+  {"name": "FT",           "rss_url": "https://www.ft.com/rss/home",                                            "tier": 1, "full_text": false, "source_type": "rss"},
+  {"name": "Bloomberg",    "rss_url": "https://feeds.bloomberg.com/markets/news.rss",                            "tier": 1, "full_text": false, "source_type": "rss"},
+  {"name": "CNBC",         "rss_url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",                  "tier": 2, "full_text": true,  "source_type": "rss"},
+  {"name": "BBC Business", "rss_url": "http://feeds.bbci.co.uk/news/business/rss.xml",                          "tier": 2, "full_text": true,  "source_type": "rss"},
+  {"name": "CoinDesk",     "rss_url": "https://www.coindesk.com/arc/outboundfeeds/rss/",                        "tier": 2, "full_text": true,  "source_type": "rss"},
+  {"name": "wallstreetbets",  "subreddit": "wallstreetbets",  "tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50},
+  {"name": "investing",       "subreddit": "investing",       "tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50},
+  {"name": "stocks",          "subreddit": "stocks",          "tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50},
+  {"name": "economics",       "subreddit": "economics",       "tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50},
+  {"name": "Bitcoin",         "subreddit": "Bitcoin",         "tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50},
+  {"name": "SecurityAnalysis","subreddit": "SecurityAnalysis","tier": 3, "full_text": false, "source_type": "reddit", "min_upvotes": 50}
+]

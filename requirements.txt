@@ -1,0 +1,10 @@
+feedparser
+requests
+beautifulsoup4
+praw
+psycopg2-binary
+fastapi
+uvicorn
+apscheduler
+python-dotenv
+lxml

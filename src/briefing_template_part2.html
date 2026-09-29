@@ -1,0 +1,269 @@
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const URGENCY_ORDER = ['Immediate','Developing','Background'];
+const EVENT_ICONS = {
+  'Policy / Macro Shock':'landmark','Earnings Catalyst':'trending-up',
+  'Geopolitical Risk':'shield-alert','Regulatory / Legal Risk':'scale',
+  'Analyst Revision':'bar-chart-2','M&A / Corporate Event':'handshake',
+  'Executive Change':'user','Product Launch':'rocket',
+  'Crypto Signal':'bitcoin','Fear / Panic Signal':'alert-triangle',
+  'Retail Sentiment Spike':'flame','Institutional Flow':'building-2',
+  'General':'circle'
+};
+const COLORS = ['#4f98a3','#5591c7','#6daa45','#e8af34','#d163a7','#d19900','#dd6974','#fdab43','#a86fdf','#4f98a3'];
+
+function tierClass(t){return t===1?'tier1':'tier2'}
+function urgencyClass(u){return 'urgency-'+u}
+function fmt(s){return s?s.substring(0,90)+'…':'';}
+function snap(n){return n?Math.round(n*100)+'%':'—'}
+
+function buildSourceBadge(source, tier){
+  return `<span class="source-badge ${tierClass(tier)}">${source} T${tier}</span>`;
+}
+function buildUrgencyBadge(u){
+  return `<span class="urgency-badge ${urgencyClass(u)}">${u}</span>`;
+}
+
+function buildCard(a){
+  const title = (a.title||'').substring(0,110);
+  const snippet = (a.content_snippet||'').replace(/[\n\r]+/g,' ').substring(0,120);
+  const rel = parseFloat(a.relevance_score)||0;
+  const nov = parseFloat(a.novelty_score)||0;
+  const ent = parseInt(a.entity_count)||0;
+  return `
+  <div class="article-card">
+    <div class="card-top">
+      <a class="card-title" href="${a.url||'#'}" target="_blank" rel="noopener">${title}</a>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        ${buildSourceBadge(a.source, a.tier)}
+        ${buildUrgencyBadge(a.urgency_flag||'Background')}
+      </div>
+    </div>
+    <div class="card-snippet">${snippet}</div>
+    <div class="card-scores">
+      <div class="score-item">
+        Relevance
+        <div class="score-bar"><div class="score-fill" style="width:${rel*100}%"></div></div>
+        <span class="score-num">${snap(rel)}</span>
+      </div>
+      <div class="score-item">
+        Novelty
+        <div class="score-bar"><div class="score-fill" style="width:${nov*100}%"></div></div>
+        <span class="score-num">${snap(nov)}</span>
+      </div>
+      <div class="score-item" style="margin-left:auto">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        ${ent} entit.
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── SIDEBAR: EVENT TYPES ─────────────────────────────────────────────────────
+function buildSidebar(){
+  const el = document.getElementById('sidebar-events');
+  const evts = Object.entries(STATS.event_types).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML = evts.map(([name, count])=>`
+    <a class="sidebar-item" data-view="event" data-event="${name}" href="#">
+      <div class="item-left">
+        <i class="item-icon" data-lucide="${EVENT_ICONS[name]||'circle'}" style="width:15px;height:15px"></i>
+        <span style="font-size:12px">${name}</span>
+      </div>
+      <span class="badge">${count}</span>
+    </a>`).join('');
+  document.getElementById('badge-feed').textContent = STATS.market_impact;
+}
+
+// ─── OVERVIEW VIEW ────────────────────────────────────────────────────────────
+function buildOverview(){
+  const removed = STATS.input - STATS.after_filter;
+  const pct = Math.round((STATS.market_impact / STATS.after_filter)*100);
+
+  // pipeline steps
+  const pipelineSteps = [
+    {label:'Input',count:STATS.input,sub:'scraped'},
+    {label:'Dedup',count:STATS.after_dedup,sub:`-${STATS.input-STATS.after_dedup}`},
+    {label:'Relevance',count:STATS.after_filter,sub:`-${STATS.after_dedup-STATS.after_filter}`},
+    {label:'Events',count:STATS.after_filter,sub:'classified'},
+    {label:'Priority',count:STATS.market_impact,sub:'flagged'},
+  ];
+
+  const stepsHtml = pipelineSteps.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;flex:1">
+      <div style="text-align:center;flex:1">
+        <div class="step-circle">${i+1}</div>
+        <div class="step-count">${s.count}</div>
+        <div class="step-label">${s.label}<br><span style="color:var(--faint)">${s.sub}</span></div>
+      </div>
+      ${i<pipelineSteps.length-1?'<div style="color:var(--faint);font-size:18px;margin-bottom:20px">→</div>':''}
+    </div>`).join('');
+
+  // urgency bars
+  const urgencyHtml = URGENCY_ORDER.map((u,i)=>{
+    const v = STATS.urgency[u]||0;
+    const max = Math.max(...Object.values(STATS.urgency));
+    const pct = Math.round((v/max)*100);
+    const colors = ['var(--immediate)','var(--developing)','var(--background-c)'];
+    return `<div class="bar-row">
+      <span class="bar-label">${u}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[i]}"></div></div>
+      <span class="bar-val">${v}</span>
+    </div>`;
+  }).join('');
+
+  // source bars
+  const sourcesSorted = Object.entries(STATS.sources).sort((a,b)=>b[1]-a[1]);
+  const maxSrc = sourcesSorted[0][1];
+  const sourceHtml = sourcesSorted.slice(0,7).map(([s,v],i)=>`
+    <div class="bar-row">
+      <span class="bar-label">${s}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round((v/maxSrc)*100)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+      <span class="bar-val">${v}</span>
+    </div>`).join('');
+
+  // top priority articles (feed top 6)
+  const top6 = FEED.slice(0,6).map(buildCard).join('');
+
+  document.getElementById('view-overview').innerHTML = `
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-number">${STATS.input}</div>
+        <div class="stat-label">Articles Scraped</div>
+        <div class="stat-delta">from ${Object.keys(STATS.sources).length} sources</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${removed}</div>
+        <div class="stat-label">Filtered / Deduped</div>
+        <div class="stat-delta">${Math.round((removed/STATS.input)*100)}% removed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${STATS.after_filter}</div>
+        <div class="stat-label">Passed Filters</div>
+        <div class="stat-delta">${Object.keys(STATS.event_types).length} event types</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${STATS.market_impact}</div>
+        <div class="stat-label">Market Impact</div>
+        <div class="stat-delta">${pct}% of filtered</div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="pipeline-panel">
+      <div class="section-title" style="font-size:13px;margin-bottom:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Processing Pipeline
+      </div>
+      <div class="pipeline-steps" style="margin-top:14px">${stepsHtml}</div>
+    </div>
+
+    <!-- Charts -->
+    <div class="mini-charts">
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">Urgency Distribution</div>
+        ${urgencyHtml}
+      </div>
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">Articles by Source</div>
+        ${sourceHtml}
+      </div>
+    </div>
+
+    <!-- Top Articles -->
+    <div class="section-header">
+      <div class="section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Top Priority Articles
+      </div>
+      <span class="section-count">Sorted by tier + relevance</span>
+    </div>
+    <div class="articles-grid">${top6}</div>
+  `;
+}
+
+// ─── FEED VIEW ────────────────────────────────────────────────────────────────
+let feedFilter = 'all';
+function buildFeed(){
+  const filters = ['all','Immediate','Developing','Background'];
+  const filterHtml = filters.map(f=>`
+    <button class="filter-btn ${feedFilter===f?'active':''}" onclick="setFeedFilter('${f}')">${f==='all'?'All Urgency':f}</button>
+  `).join('');
+
+  const items = feedFilter==='all' ? FEED : FEED.filter(a=>a.urgency_flag===feedFilter);
+  const cardsHtml = items.length ? items.map(buildCard).join('') : '<div class="empty">No articles match this filter.</div>';
+
+  document.getElementById('view-feed').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Priority Feed <span class="section-count" style="font-weight:400;margin-left:6px">${items.length} articles</span></div>
+    </div>
+    <div class="filter-bar">${filterHtml}</div>
+    <div class="articles-grid">${cardsHtml}</div>
+  `;
+}
+function setFeedFilter(f){feedFilter=f;buildFeed();}
+
+// ─── EVENT VIEW ───────────────────────────────────────────────────────────────
+let currentEvent = null;
+function buildEventView(eventType){
+  const articles = TOP_PER_EVENT[eventType]||[];
+  const icon = EVENT_ICONS[eventType]||'circle';
+  const cardsHtml = articles.length ? articles.map(buildCard).join('') : '<div class="empty">No articles for this event type.</div>';
+  document.getElementById('view-event').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">
+        <i data-lucide="${icon}" style="width:16px;height:16px"></i>
+        ${eventType}
+        <span class="section-count" style="font-weight:400;margin-left:4px">${articles.length} top articles</span>
+      </div>
+    </div>
+    <div class="articles-grid">${cardsHtml}</div>
+  `;
+  lucide.createIcons();
+}
+
+// ─── VIEW ROUTER ──────────────────────────────────────────────────────────────
+function showView(name, eventType){
+  ['overview','feed','event'].forEach(v=>{
+    document.getElementById('view-'+v).style.display = v===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sidebar-item').forEach(el=>{
+    el.classList.remove('active');
+    if(el.dataset.view===name && (!eventType || el.dataset.event===eventType)){
+      el.classList.add('active');
+    }
+  });
+  if(name==='event' && eventType) buildEventView(eventType);
+  if(name==='feed') buildFeed();
+}
+
+document.addEventListener('click', e=>{
+  const item = e.target.closest('.sidebar-item');
+  if(!item) return;
+  e.preventDefault();
+  const view = item.dataset.view;
+  const eventType = item.dataset.event;
+  if(view) showView(view, eventType);
+});
+
+// ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
+(function(){
+  const t=document.querySelector('[data-theme-toggle]');
+  const r=document.documentElement;
+  let d=r.getAttribute('data-theme')||'dark';
+  t&&t.addEventListener('click',()=>{
+    d=d==='dark'?'light':'dark';
+    r.setAttribute('data-theme',d);
+  });
+})();
+
+// ─── RUN TIME ─────────────────────────────────────────────────────────────────
+document.getElementById('run-time').textContent = 'Data: ' + RUN_TIME;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildSidebar();
+buildOverview();
+lucide.createIcons();
+</script>
+</body>
+</html>

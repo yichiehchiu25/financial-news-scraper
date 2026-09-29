@@ -1,0 +1,10 @@
+{
+  "tickers": ["NVDA","PLTR","TSLA","BTC","UNH","TSMC","OKLO","LITE","NET","GLD","GOOG","AVGO","MU"],
+  "full_names": ["Nvidia","Palantir","Tesla","Bitcoin","UnitedHealth","TSMC","Oklo","Lumentum","Cloudflare","Gold","Google","Broadcom","Micron"],
+  "fixed_topics": {
+    "macro": ["Federal Reserve","Fed","FOMC","ECB","rate decision","interest rate","CPI","inflation","NFP","GDP","recession","macroeconomics","tariff","trade war","sanctions","export restriction","PBOC","BoJ"],
+    "trump": ["Trump","White House","executive order"],
+    "ai":    ["artificial intelligence","AI","LLM","OpenAI","Anthropic","semiconductor","chip"],
+    "commodities": ["oil price","crude oil","WTI","Brent","gold price","silver price","copper price","commodity","supply chain","OPEC"]
+  }
+}
